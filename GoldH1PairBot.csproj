@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <AlgoBuild>true</AlgoBuild>
-    <AlgoPublish>true</AlgoPublish>
+    <AlgoPublish>false</AlgoPublish>
     <IncludeSource>false</IncludeSource>
     <IncludeSymbols>false</IncludeSymbols>
     <AlgoName>GoldH1PairBot</AlgoName>
