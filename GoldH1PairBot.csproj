@@ -5,12 +5,6 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-
-    <AlgoBuild>true</AlgoBuild>
-    <AlgoPublish>false</AlgoPublish>
-    <IncludeSource>false</IncludeSource>
-    <IncludeSymbols>false</IncludeSymbols>
-    <AlgoName>GoldH1PairBot</AlgoName>
   </PropertyGroup>
 
   <ItemGroup>
