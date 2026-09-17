@@ -16,20 +16,23 @@ jobs:
 
       - name: Install cTrader CLI
         run: |
-          wget -q https://github.com/spotware/ctrader-console-docker/releases/latest/download/ctrader-cli-linux-x64.tar.gz
-          tar -xzf ctrader-cli-linux-x64.tar.gz
-          chmod +x ctrader-cli
-          sudo mv ctrader-cli /usr/local/bin/ctrader-cli
+          brew tap spotware/tap https://github.com/spotware/homebrew-tap
+          brew install spotware/tap/ctrader-cli
 
-      - name: Build cBot
+      - name: Check cTrader CLI
+        run: |
+          ctrader-cli --version
+          ctrader-cli --help
+
+      - name: Build GoldH1PairBot
         run: |
           ctrader-cli build GoldH1PairBot.csproj
 
-      - name: Find generated ALGO
+      - name: Find ALGO file
         run: |
           find . -type f -name "*.algo" -print
 
-      - name: Upload ALGO file
+      - name: Upload ALGO
         uses: actions/upload-artifact@v4
         with:
           name: GoldH1PairBot-algo
