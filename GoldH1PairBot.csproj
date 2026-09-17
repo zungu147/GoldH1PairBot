@@ -2,13 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <OutputType>Library</OutputType>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <AssemblyName>GoldH1PairBot</AssemblyName>
+    <RootNamespace>cAlgo.Robots</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="cTrader.Automate" Version="1.*-*" />
+    <PackageReference Include="cTrader.Automate" Version="1.0.19" />
   </ItemGroup>
 
 </Project>
