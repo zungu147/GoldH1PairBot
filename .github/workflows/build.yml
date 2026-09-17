@@ -14,16 +14,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install .NET 6 and .NET 8
+      - name: Install .NET 6
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            6.0.x
-            8.0.x
+          dotnet-version: '6.0.x'
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
       - name: Verify .NET
         run: |
-          dotnet --info
           dotnet --list-runtimes
 
       - name: Install Homebrew
@@ -43,7 +45,6 @@ jobs:
       - name: Verify cTrader CLI
         run: |
           ctrader-cli --version
-          ctrader-cli --help
 
       - name: Build GoldH1PairBot
         run: |
@@ -53,7 +54,7 @@ jobs:
         run: |
           find . -type f -name "*.algo" -print
 
-      - name: Upload ALGO file
+      - name: Upload ALGO
         uses: actions/upload-artifact@v4
         with:
           name: GoldH1PairBot-algo
