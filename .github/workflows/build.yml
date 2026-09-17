@@ -21,13 +21,13 @@ jobs:
           dotnet-version: 6.0.x
 
       - name: Restore dependencies
-        run: dotnet restore GoldH1PairBot/GoldH1PairBot.csproj
+        run: dotnet restore GoldH1PairBot.csproj
 
       - name: Build
-        run: dotnet build GoldH1PairBot/GoldH1PairBot.csproj --configuration Release --no-restore
+        run: dotnet build GoldH1PairBot.csproj --configuration Release --no-restore
 
       - name: Upload DLL
         uses: actions/upload-artifact@v4
         with:
           name: GoldH1PairBot
-          path: GoldH1PairBot/bin/Release/net6.0/
+          path: bin/Release/net6.0/
