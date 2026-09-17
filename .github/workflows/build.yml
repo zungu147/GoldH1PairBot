@@ -4,84 +4,30 @@ on:
   push:
     branches:
       - main
+      - master
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install .NET 6
+      - name: Setup .NET 6 SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.0.x'
+          dotnet-version: 6.0.x
 
-      - name: Install .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+      - name: Restore dependencies
+        run: dotnet restore GoldH1PairBot/GoldH1PairBot.csproj
 
-      - name: Verify .NET
-        run: |
-          dotnet --info
-          dotnet --list-runtimes
+      - name: Build
+        run: dotnet build GoldH1PairBot/GoldH1PairBot.csproj --configuration Release --no-restore
 
-      - name: Install Homebrew
-        run: |
-          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-      - name: Add Homebrew to PATH
-        run: |
-          echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
-          echo "/home/linuxbrew/.linuxbrew/sbin" >> "$GITHUB_PATH"
-
-      - name: Install cTrader CLI
-        run: |
-          brew tap spotware/tap https://github.com/spotware/homebrew-tap
-          brew install spotware/tap/ctrader-cli
-
-      - name: Verify cTrader CLI
-        run: |
-          ctrader-cli --version
-          ctrader-cli --help
-
-      - name: Build GoldH1PairBot
-        run: |
-          set -x
-
-          ctrader-cli build --project-path=GoldH1PairBot.csproj 2>&1 | tee ctrader-build.log
-
-          EXIT_CODE=${PIPESTATUS[0]}
-
-          echo "cTrader CLI exit code: $EXIT_CODE"
-
-          echo "===== cTrader build log ====="
-          cat ctrader-build.log
-
-          echo "===== Searching for generated files ====="
-          find . -type f \( -name "*.algo" -o -name "*.zip" -o -name "*.dll" \) -print
-
-          exit $EXIT_CODE
-
-      - name: Upload build diagnostics
-        if: always()
+      - name: Upload DLL
         uses: actions/upload-artifact@v4
         with:
-          name: GoldH1PairBot-build-diagnostics
-          path: |
-            ctrader-build.log
-            **/*.algo
-            **/*.zip
-            **/*.dll
-          if-no-files-found: warn
-
-      - name: Upload ALGO file
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: GoldH1PairBot-algo
-          path: "**/*.algo"
-          if-no-files-found: error
+          name: GoldH1PairBot
+          path: GoldH1PairBot/bin/Release/net6.0/
