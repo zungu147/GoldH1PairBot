@@ -14,26 +14,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Homebrew
+        run: |
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> "$GITHUB_ENV"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
       - name: Install cTrader CLI
         run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew tap spotware/tap https://github.com/spotware/homebrew-tap
           brew install spotware/tap/ctrader-cli
 
-      - name: Check cTrader CLI
+      - name: Verify cTrader CLI
         run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           ctrader-cli --version
           ctrader-cli --help
 
       - name: Build GoldH1PairBot
         run: |
-          ctrader-cli build GoldH1PairBot.csproj
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          ctrader-cli build --project-path=GoldH1PairBot.csproj
 
       - name: Find ALGO file
         run: |
           find . -type f -name "*.algo" -print
 
-      - name: Upload ALGO
+      - name: Upload ALGO file
         uses: actions/upload-artifact@v4
         with:
           name: GoldH1PairBot-algo
           path: "**/*.algo"
+          if-no-files-found: error
