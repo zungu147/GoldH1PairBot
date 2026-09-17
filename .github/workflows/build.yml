@@ -26,6 +26,7 @@ jobs:
 
       - name: Verify .NET
         run: |
+          dotnet --info
           dotnet --list-runtimes
 
       - name: Install Homebrew
@@ -45,16 +46,40 @@ jobs:
       - name: Verify cTrader CLI
         run: |
           ctrader-cli --version
+          ctrader-cli --help
 
       - name: Build GoldH1PairBot
         run: |
-          ctrader-cli build --project-path=GoldH1PairBot.csproj
+          set -x
 
-      - name: Find ALGO file
-        run: |
-          find . -type f -name "*.algo" -print
+          ctrader-cli build --project-path=GoldH1PairBot.csproj 2>&1 | tee ctrader-build.log
 
-      - name: Upload ALGO
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          echo "cTrader CLI exit code: $EXIT_CODE"
+
+          echo "===== cTrader build log ====="
+          cat ctrader-build.log
+
+          echo "===== Searching for generated files ====="
+          find . -type f \( -name "*.algo" -o -name "*.zip" -o -name "*.dll" \) -print
+
+          exit $EXIT_CODE
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoldH1PairBot-build-diagnostics
+          path: |
+            ctrader-build.log
+            **/*.algo
+            **/*.zip
+            **/*.dll
+          if-no-files-found: warn
+
+      - name: Upload ALGO file
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: GoldH1PairBot-algo
