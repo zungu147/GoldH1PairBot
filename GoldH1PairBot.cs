@@ -9,7 +9,7 @@ namespace cAlgo.Robots
     public class GoldH1PairBot : Robot
     {
         [Parameter("Symbol", DefaultValue = "XAUUSD")]
-        public string TradeSymbol { get; set; }
+        public string TradeSymbol { get; set; } = "XAUUSD";
 
         [Parameter("Volume (Lots)", DefaultValue = 0.01, MinValue = 0.01, Step = 0.01)]
         public double VolumeLots { get; set; }
@@ -30,13 +30,12 @@ namespace cAlgo.Robots
         public double FinalProfitTargetUsd { get; set; }
 
         [Parameter("Bot Label", DefaultValue = "GoldH1PairBot")]
-        public string BotLabel { get; set; }
+        public string BotLabel { get; set; } = "GoldH1PairBot";
 
-        private Symbol _symbol;
+        private Symbol? _symbol;
         private double _volumeInUnits;
         private DateTime _currentH1Bar;
 
-        // Protection state for the currently active H1 pair.
         private bool _firstProtectionActivated;
         private bool _secondProtectionActivated;
 
@@ -68,8 +67,6 @@ namespace cAlgo.Robots
             Print("Timeframe: H1");
             Print("======================================");
 
-            // If the bot starts while positions from an earlier run exist,
-            // manage them rather than immediately opening another pair.
             if (GetBotPositions().Any())
             {
                 Print("Existing bot positions detected. They will be managed.");
@@ -84,8 +81,6 @@ namespace cAlgo.Robots
         protected override void OnTick()
         {
             CheckForNewH1Candle();
-
-            // Manage the active pair continuously on every tick.
             ManagePositions();
         }
 
@@ -103,20 +98,18 @@ namespace cAlgo.Robots
             Print("Closing previous H1 candle positions.");
             Print("--------------------------------------");
 
-            // IMPORTANT:
-            // Every H1 candle is a completely new trade cycle.
-            // Close ALL remaining positions from the previous candle first.
             CloseAllBotPositions();
 
-            // Reset protection state for the new H1 candle.
             ResetProtectionState();
 
-            // Open a fresh BUY + SELL pair.
             OpenNewH1Pair();
         }
 
         private void OpenNewH1Pair()
         {
+            if (_symbol == null)
+                return;
+
             if (GetBotPositions().Any())
             {
                 Print("WARNING: Positions still exist. New pair will not be opened.");
@@ -132,7 +125,7 @@ namespace cAlgo.Robots
                 BotLabel
             );
 
-            if (buyResult.IsSuccessful)
+            if (buyResult.IsSuccessful && buyResult.Position != null)
             {
                 Print(
                     "BUY OPENED | ID={0} | Entry={1}",
@@ -152,7 +145,7 @@ namespace cAlgo.Robots
                 BotLabel
             );
 
-            if (sellResult.IsSuccessful)
+            if (sellResult.IsSuccessful && sellResult.Position != null)
             {
                 Print(
                     "SELL OPENED | ID={0} | Entry={1}",
@@ -176,15 +169,18 @@ namespace cAlgo.Robots
                 return;
 
             // --------------------------------------------------
-            // STEP 1
-            // When one trade reaches +$5:
-            // - close the opposite trade
-            // - protect the winning trade at +$3
+            // FIRST STAGE:
+            // One position reaches +$5.
+            //
+            // Close the opposite position.
+            // Protect the winning position at +$3.
             // --------------------------------------------------
             if (!_firstProtectionActivated)
             {
-                Position triggerPosition = positions
-                    .FirstOrDefault(p => p.NetProfit >= FirstProfitTriggerUsd);
+                Position? triggerPosition = positions
+                    .FirstOrDefault(
+                        p => p.NetProfit >= FirstProfitTriggerUsd
+                    );
 
                 if (triggerPosition != null)
                 {
@@ -194,13 +190,16 @@ namespace cAlgo.Robots
             }
 
             // --------------------------------------------------
-            // STEP 2
-            // When the remaining trade reaches +$7:
-            // move protection from +$3 to +$5.
+            // SECOND STAGE:
+            // Remaining position reaches +$7.
+            //
+            // Move protection from +$3 to +$5.
             // --------------------------------------------------
-            if (_firstProtectionActivated && !_secondProtectionActivated)
+            if (_firstProtectionActivated &&
+                !_secondProtectionActivated)
             {
-                Position remainingPosition = GetBotPositions().FirstOrDefault();
+                Position? remainingPosition =
+                    GetBotPositions().FirstOrDefault();
 
                 if (remainingPosition != null &&
                     remainingPosition.NetProfit >= SecondProfitTriggerUsd)
@@ -211,8 +210,8 @@ namespace cAlgo.Robots
             }
 
             // --------------------------------------------------
-            // STEP 3
-            // Close remaining trade at +$16.
+            // FINAL STAGE:
+            // Remaining position reaches +$16.
             // --------------------------------------------------
             foreach (var position in GetBotPositions().ToArray())
             {
@@ -225,6 +224,9 @@ namespace cAlgo.Robots
 
         private void ActivateFirstProtection(Position winningPosition)
         {
+            if (_symbol == null)
+                return;
+
             if (_firstProtectionActivated)
                 return;
 
@@ -243,7 +245,6 @@ namespace cAlgo.Robots
             );
             Print("======================================");
 
-            // Close every other bot position.
             foreach (var position in GetBotPositions().ToArray())
             {
                 if (position.Id == winningPosition.Id)
@@ -261,10 +262,9 @@ namespace cAlgo.Robots
                 );
             }
 
-            // The winning position may have moved slightly while
-            // the opposite position was being closed, so get it again.
-            var remainingPosition = GetBotPositions()
-                .FirstOrDefault(p => p.Id == winningPosition.Id);
+            Position? remainingPosition =
+                GetBotPositions()
+                    .FirstOrDefault(p => p.Id == winningPosition.Id);
 
             if (remainingPosition == null)
             {
@@ -307,8 +307,14 @@ namespace cAlgo.Robots
             Position position,
             double protectedProfit)
         {
+            if (_symbol == null)
+                return;
+
             double? protectedPrice =
-                CalculatePriceForProfit(position, protectedProfit);
+                CalculatePriceForProfit(
+                    position,
+                    protectedProfit
+                );
 
             if (!protectedPrice.HasValue)
             {
@@ -322,7 +328,7 @@ namespace cAlgo.Robots
 
             double stopLoss = protectedPrice.Value;
 
-            // Make sure the SL remains on the correct executable side
+            // Keep the stop on the valid executable side
             // of the current market price.
             if (position.TradeType == TradeType.Buy)
             {
@@ -345,7 +351,7 @@ namespace cAlgo.Robots
                 );
             }
 
-            stopLoss = _symbol.NormalizePrice(stopLoss);
+            stopLoss = RoundPrice(stopLoss);
 
             // Never move an existing SL backward.
             if (position.StopLoss.HasValue)
@@ -371,14 +377,16 @@ namespace cAlgo.Robots
                 }
             }
 
+            // Use the current cTrader ModifyPosition overload.
             var result = ModifyPosition(
                 position,
                 stopLoss,
-                position.TakeProfit
+                position.TakeProfit,
+                ProtectionType.Absolute
             );
 
             Print(
-                "{0} PROTECTION UPDATED | Target profit=+${1:F2} | SL={2} | Success={3}",
+                "{0} PROTECTION UPDATED | Target=+${1:F2} | SL={2} | Success={3}",
                 position.TradeType,
                 protectedProfit,
                 stopLoss,
@@ -394,10 +402,27 @@ namespace cAlgo.Robots
             }
         }
 
+        private double RoundPrice(double price)
+        {
+            if (_symbol == null)
+                return price;
+
+            if (_symbol.TickSize <= 0)
+                return price;
+
+            return Math.Round(
+                price / _symbol.TickSize,
+                MidpointRounding.AwayFromZero
+            ) * _symbol.TickSize;
+        }
+
         private double? CalculatePriceForProfit(
             Position position,
             double desiredProfit)
         {
+            if (_symbol == null)
+                return null;
+
             // Preferred method:
             // Use the position's actual profit-per-pip.
             if (Math.Abs(position.Pips) > 0.000001)
@@ -421,8 +446,7 @@ namespace cAlgo.Robots
                 }
             }
 
-            // Fallback:
-            // Calculate the monetary value of one price unit.
+            // Fallback using symbol tick economics.
             if (_symbol.TickValue > 0 &&
                 _symbol.TickSize > 0 &&
                 position.VolumeInUnits > 0)
